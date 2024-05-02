@@ -1,0 +1,49 @@
+- name: Create VM # Определение задачи Ansible для создания виртуальной машины.
+  hosts: vmware2 # Задача будет выполнена на хостах из группы "vmware2" в инвентаре Ansible.
+  become: false # Ansible не будет выполнять команды с привилегиями суперпользователя.
+  gather_facts: false # Ansible не будет собирать факты о хостах перед выполнением задач.
+  vars_files: # Определены файлы переменных, используемые в playbook.
+    - vars/vc.yml # Переменные будут загружены из файла vars/vc.yml.
+  tasks: # Начало определения задач.
+
+    - set_fact: # Установка значения переменной.
+        vm_name: "{{ iac_master_name }}" # Переменная vm_name устанавливается равной значению переменной iac_master_name.
+
+    - name: "Find folder for VM - {{ vm_name }}" # Определение задачи поиска папки для ВМ с определенным именем.
+      community.vmware.vmware_guest_find: # Использование модуля Ansible community.vmware.vmware_guest_find для поиска информации о ВМ.
+        ... # Параметры модуля, такие как hostname, username, password, и т.д.
+
+    - name: "Print info about {{ vm_disk_datastore }} master" # Определение задачи вывода информации о найденной папке для ВМ.
+      ansible.builtin.debug: # Использование встроенного модуля Ansible для отладки.
+        var: master_vm_facts # Вывод содержимого переменной master_vm_facts.
+
+    - name: "Gather info from datacenter about {{ vm_disk_datastore }} datastore" # Определение задачи сбора информации о хранилище данных.
+      community.vmware.vmware_datastore_info: # Использование модуля Ansible community.vmware.vmware_datastore_info для получения информации о хранилище данных.
+        ... # Параметры модуля, такие как hostname, username, password, и т.д.
+
+    - name: "Print info about {{ vm_disk_datastore }} datastore volume" # Определение задачи вывода информации о хранилище данных.
+      ansible.builtin.debug: # Использование встроенного модуля Ansible для отладки.
+        var: datastore_info # Вывод содержимого переменной datastore_info.
+
+    - name: Create VM # Определение задачи создания виртуальной машины.
+      community.vmware.vmware_guest: # Использование модуля Ansible community.vmware.vmware_guest для создания ВМ.
+        ... # Параметры модуля, такие как hostname, username, password, и т.д.
+
+    - name: Print info about created VM # Определение задачи вывода информации о созданной ВМ.
+      ansible.builtin.debug: # Использование встроенного модуля Ansible для отладки.
+        var: vm_create_facts # Вывод содержимого переменной vm_create_facts.
+
+    # - name: Clone a template
+    #   community.vmware.vmware_guest:
+    #     hostname: "{{ vcenter_hostname }}"
+    #     username: "{{ vcenter_username }}"
+    #     password: "{{ vcenter_password }}"
+    #     # datacenter: "{{ vcenter_datacenter }}"
+    #     validate_certs: "{{ vcenter_validate_certs }}"
+    #     name: iac-test-vm
+    #     template: iac-template
+    #     folder: "{{ vms_destination_folder }}/test-vm"
+    #     state: poweredon
+    #     wait_for_ip_address: yes
+    #   delegate_to: localhost
+    #   register: vm_template_clone

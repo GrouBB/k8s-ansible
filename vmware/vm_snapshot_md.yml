@@ -1,0 +1,36 @@
+- name: Get VCenter info # Определение задачи Ansible для получения информации о VCenter.
+  hosts: vmware2 # Задача будет выполнена на хостах из группы "vmware2" в инвентаре Ansible.
+  become: false # Ansible не будет выполнять команды с привилегиями суперпользователя.
+  gather_facts: false # Ansible не будет собирать факты о хостах перед выполнением задач.
+  vars_files: # Определены файлы переменных, используемые в playbook.
+    - vars/vc.yml # Переменные будут загружены из файла vars/vc.yml.
+  tasks: # Начало определения задач.
+
+    - name: Gather snapshot information about the virtual machine in the given vCenter # Определение задачи сбора информации о снапшотах виртуальной машины в указанном vCenter.
+      community.vmware.vmware_guest_snapshot_info: # Использование модуля Ansible community.vmware.vmware_guest_snapshot_info для получения информации о снапшотах.
+        ... # Параметры модуля, такие как hostname, username, password, и т.д.
+      loop: # Определение цикла для выполнения задачи для нескольких виртуальных машин.
+        - iac-k8s-m1
+        - iac-k8s-m2
+        - iac-k8s-w1
+        - iac-k8s-w2
+        - iac-k8s-w3
+        - iac-k8s-w4
+      delegate_to: localhost # Задача будет выполнена локально на хосте Ansible.
+      register: snapshot_info # Результат выполнения задачи будет сохранен в переменной snapshot_info.
+
+    - name: Print Snaphshot info # Определение задачи вывода информации о снапшотах.
+      ansible.builtin.debug: # Использование встроенного модуля Ansible для отладки.
+        var: snapshot_info # Вывод содержимого переменной snapshot_info.
+
+    - name: Revert to a snapshot # Определение задачи восстановления до снапшота.
+      community.vmware.vmware_guest_snapshot: # Использование модуля Ansible community.vmware.vmware_guest_snapshot для восстановления до снапшота.
+        ... # Параметры модуля, такие как hostname, username, password, и т.д.
+      loop: # Определение цикла для выполнения задачи для нескольких виртуальных машин.
+        - iac-k8s-m1
+        - iac-k8s-m2
+        - iac-k8s-w1
+        - iac-k8s-w2
+        - iac-k8s-w3
+        - iac-k8s-w4
+      delegate_to: localhost # Задача будет выполнена локально на хосте Ansible.

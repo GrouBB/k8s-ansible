@@ -1,0 +1,48 @@
+---
+- name: Get VCenter info # Определение задачи Ansible для получения информации о VCenter.
+  hosts: vmware2 # Задача будет выполнена на хостах из группы "vmware2" в инвентаре Ansible.
+  become: false # Ansible не будет выполнять команды с привилегиями суперпользователя.
+  gather_facts: false # Ansible не будет собирать факты о хостах перед выполнением задач.
+  vars_files: # Определены файлы переменных, используемые в playbook.
+    - vars/vc.yml # Переменные будут загружены из файла vars/vc.yml.
+  tasks: # Начало определения задач.
+
+    - name: Provide information about vCenter # Определение задачи предоставления информации о VCenter.
+      community.vmware.vmware_about_info: # Использование модуля Ansible community.vmware.vmware_about_info для получения информации о VCenter.
+        ... # Параметры модуля, такие как hostname, username, password, и т.д.
+
+    - name: Print VCenter Info # Определение задачи вывода информации о VCenter.
+      ansible.builtin.debug: # Использование встроенного модуля Ansible для отладки.
+        var: vcenter_info # Вывод содержимого переменной vcenter_info.
+
+    - name: Gather info about IAC master with vSphere API output schema # Определение задачи сбора информации о ВМ "IAC master" с использованием схемы вывода vSphere API.
+      community.vmware.vmware_guest_info: # Использование модуля Ansible community.vmware.vmware_guest_info для получения информации о ВМ.
+        ... # Параметры модуля, такие как hostname, username, password, и т.д.
+
+    - name: Print VM Info # Определение задачи вывода информации о ВМ.
+      ansible.builtin.debug: # Использование встроенного модуля Ansible для отладки.
+        var: vcenter_vm_info # Вывод содержимого переменной vcenter_vm_info.
+
+    - name: Gather information about all datacenters # Определение задачи сбора информации о всех центрах данных.
+      community.vmware.vmware_datacenter_info: # Использование модуля Ansible community.vmware.vmware_datacenter_info для получения информации о центрах данных.
+        ... # Параметры модуля, такие как hostname, username, password, и т.д.
+
+    - name: Print Datacenter facts # Определение задачи вывода информации о центрах данных.
+      ansible.builtin.debug: # Использование встроенного модуля Ansible для отладки.
+        var: datacenter_facts # Вывод содержимого переменной datacenter_facts.
+
+    - name: Gather info from datacenter datastore volumes # Определение задачи сбора информации о томах хранилищ данных центра данных.
+      community.vmware.vmware_datastore_info: # Использование модуля Ansible community.vmware.vmware_datastore_info для получения информации о хранилищах данных.
+        ... # Параметры модуля, такие как hostname, username, password, и т.д.
+
+    - name: Print datacenter datastore volumes # Определение задачи вывода информации о хранилищах данных центра данных.
+      ansible.builtin.debug: # Использование встроенного модуля Ansible для отладки.
+        var: datacenter_datastores_info # Вывод содержимого переменной datacenter_datastores_info.
+
+    - name: Provide information about vCenter folders # Определение задачи предоставления информации о папках VCenter.
+      community.vmware.vmware_folder_info: # Использование модуля Ansible community.vmware.vmware_folder_info для получения информации о папках VCenter.
+        ... # Параметры модуля, такие как hostname, username, password, и т.д.
+
+    - name: Print folder info # Определение задачи вывода информации о папках.
+      ansible.builtin.debug: # Использование встроенного модуля Ansible для отладки.
+        var: vcenter_folder_info # Вывод содержимого переменной vcenter_folder_info.
