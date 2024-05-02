@@ -1,0 +1,142 @@
+- name: Debug k8S variable
+  tags: create, start, master, worker
+  ansible.builtin.debug:
+    msg: "{{ hostvars[item].vars }} {{ hostvars[item].ansible_password }}"
+  loop: "{{ groups.k8s }}"
+
+- name: Download Proxmox container template
+  tags: create, start, master, worker
+  community.general.proxmox_template:
+    node: "{{ pve_node }}"
+    api_user: "{{ pve_user }}"
+    api_password: "{{ pve_password }}"
+    api_host: "{{ pve_hostname }}"
+    storage: "{{ pve_template_store }}"
+    content_type: vztmpl
+    template: "{{ lxc_template }}"
+    state: present
+    force: false
+    timeout: 60
+
+- name: Create k8s master containers
+  tags: create, start, master
+  community.general.proxmox:
+    node: "{{ pve_node }}"
+    api_user: "{{ pve_user }}"
+    api_password: "{{ pve_password }}"
+    api_host: "{{ pve_hostname }}"
+    hostname: "{{ item }}"
+    password: "{{ hostvars[item].ansible_password }}"
+    vmid: "{{ hostvars[item].vars.vm_id }}"
+    ostemplate: "{{ pve_template_store }}:vztmpl/{{ lxc_template }}"
+    storage: "{{ pve_container_store }}"
+    unprivileged: true
+    cores: "{{ hostvars[item].cores }}"
+    cpus: "{{ hostvars[item].cpus }}"
+    cpuunits: "{{ hostvars[item].cpuunits }}"
+    memory: "{{ hostvars[item].memory }}"
+    # pubkey: "{{ k8s_lxc_pubkey | default(omit) }}"
+    netif: '{"net0":"name={{ hostvars[item].netif.name }},ip={{ hostvars[item].vars.ansible_host }}/24,gw={{ hostvars[item].netif.gateway }},firewall={{ hostvars[item].netif.firewall }},bridge={{ hostvars[item].netif.bridge }}"}'
+    description: |
+      IAC K8S Master Container: *{{ item }}*
+  loop: "{{ groups.k8s_masters }}"
+
+- name: Create k8s worker containers
+  tags: create, start, worker
+  community.general.proxmox:
+    node: "{{ pve_node }}"
+    api_user: "{{ pve_user }}"
+    api_password: "{{ pve_password }}"
+    api_host: "{{ pve_hostname }}"
+    hostname: "{{ item }}"
+    password: "{{ hostvars[item].ansible_password }}"
+    vmid: "{{ hostvars[item].vars.vm_id }}"
+    ostemplate: "{{ pve_template_store }}:vztmpl/{{ lxc_template }}"
+    storage: "{{ pve_container_store }}"
+    unprivileged: true
+    cores: "{{ hostvars[item].cores }}"
+    cpus: "{{ hostvars[item].cpus }}"
+    cpuunits: "{{ hostvars[item].cpuunits }}"
+    memory: "{{ hostvars[item].memory }}"
+    # pubkey: "{{ k8s_lxc_pubkey | default(omit) }}"
+    netif: '{"net0":"name={{ hostvars[item].netif.name }},ip={{ hostvars[item].vars.ansible_host }}/24,gw={{ hostvars[item].netif.gateway }},firewall={{ hostvars[item].netif.firewall }},bridge={{ hostvars[item].netif.bridge }}"}'
+    description: |
+      IAC K8S Master Container: *{{ item }}*
+  loop: "{{ groups.k8s_workers }}"
+
+- name: Start k8s master containers
+  tags: start, master
+  community.general.proxmox:
+    vmid: "{{ hostvars[item].vars.vm_id }}"
+    api_user: "{{ pve_user }}"
+    api_password: "{{ pve_password }}"
+    api_host: "{{ pve_hostname }}"
+    state: started
+    timeout: 60
+  loop: "{{ groups.k8s_masters }}"
+
+- name: Start k8s master containers
+  tags: start, master
+  community.general.proxmox:
+    vmid: "{{ hostvars[item].vars.vm_id }}"
+    api_user: "{{ pve_user }}"
+    api_password: "{{ pve_password }}"
+    api_host: "{{ pve_hostname }}"
+    state: started
+    timeout: 60
+  loop: "{{ groups.k8s_workers }}"
+
+- name: Stop k8s master containers
+  tags: stop, remove, master
+  community.general.proxmox:
+    vmid: "{{ hostvars[item].vars.vm_id }}"
+    api_user: "{{ pve_user }}"
+    api_password: "{{ pve_password }}"
+    api_host: "{{ pve_hostname }}"
+    state: stopped
+  loop: "{{ groups.k8s_masters }}"
+
+- name: Stop k8s worker containers
+  tags: stop, remove, worker
+  community.general.proxmox:
+    vmid: "{{ hostvars[item].vars.vm_id }}"
+    api_user: "{{ pve_user }}"
+    api_password: "{{ pve_password }}"
+    api_host: "{{ pve_hostname }}"
+    state: stopped
+  loop: "{{ groups.k8s_workers }}"
+
+- name: Remove k8s master containers
+  tags: remove, master
+  community.general.proxmox:
+    vmid: "{{ hostvars[item].vars.vm_id }}"
+    api_user: "{{ pve_user }}"
+    api_password: "{{ pve_password }}"
+    api_host: "{{ pve_hostname }}"
+    state: absent
+  loop: "{{ groups.k8s_masters }}"
+
+- name: Remove k8s worker containers
+  tags: remove, worker
+  community.general.proxmox:
+    vmid: "{{ hostvars[item].vars.vm_id }}"
+    api_user: "{{ pve_user }}"
+    api_password: "{{ pve_password }}"
+    api_host: "{{ pve_hostname }}"
+    state: absent
+  loop: "{{ groups.k8s_workers }}"
+
+- name: Install packages
+  tags: apt
+  ansible.builtin.apt:
+    name:
+      - vim
+      - git
+      - htop
+      - bat
+      - exa
+      - tmux
+      - traceroute
+      - net-tools
+    update_cache: true
+    autoclean: true

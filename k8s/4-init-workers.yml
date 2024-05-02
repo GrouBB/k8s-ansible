@@ -1,0 +1,21 @@
+---
+- name: Setup a k8s cluster workers
+  hosts: workers
+  become: false
+  gather_facts: false
+  tasks:
+
+    - name: Copy join command from Ansiblehost to the worker nodes
+      ansible.builtin.copy:
+        src: ./kubernetes_join_command.txt
+        dest: ~/kubernetes_join_command.txt
+        mode: 0777
+
+    - name: Join the Worker nodes to the cluster
+      become: true
+      ansible.builtin.command: sh /home/{{ ansible_user }}/kubernetes_join_command.txt
+      register: joined_or_not
+
+    - name: Output join command
+      ansible.builtin.debug:
+        var: joined_or_not.stdout

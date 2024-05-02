@@ -1,0 +1,62 @@
+all:
+  children:
+    pve_nodes:
+      hosts: pve
+      vars:
+        ansible_host: 172.72.72.104
+        ansible_user: root
+        ansible_password: "Qwerty1234%"
+        ansible_python_interpreter: /usr/bin/python3
+        pve_user: root@pam
+        template_store: local
+        container_store: local-lvm
+    k8s:
+      vars:
+        ansible_user: root
+        ansible_password: master
+        # ansible_ssh_common_args: '-o ProxyCommand="ssh -W %h:%p -q root@172.72.72.104"'
+        lxc_template: ubuntu-22.04-standard_22.04-1_amd64.tar.zst
+        netif:
+          gateway: 10.10.10.1
+          name: eth0
+          bridge: vmbr1
+          firewall: 1
+      children:
+        k8s_masters:
+          vars:
+            cores: 1
+            cpus: 1
+            cpuunits: 1000
+            memory: 1024
+          hosts:
+            iac-k8s-m01:
+              vars:
+                ansible_host: 10.10.10.11
+                vm_id: 301
+            iac-k8s-m02:
+              vars:
+                ansible_host: 10.10.10.12
+                vm_id: 302
+        k8s_workers:
+          vars:
+            cores: 1
+            cpus: 1
+            cpuunits: 1000
+            memory: 2048
+          hosts:
+            iac-k8s-n01:
+              vars:
+                ansible_host: 10.10.10.21
+                vm_id: 401
+            iac-k8s-n02:
+              vars:
+                ansible_host: 10.10.10.22
+                vm_id: 402
+            iac-k8s-n03:
+              vars:
+                ansible_host: 10.10.10.23
+                vm_id: 403
+            iac-k8s-n04:
+              vars:
+                ansible_host: 10.10.10.24
+                vm_id: 404

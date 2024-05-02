@@ -1,0 +1,7 @@
+---
+- name: Manage Proxmox VE Node
+  hosts: pve
+  become: false
+  gather_facts: true
+  roles:
+    - pve

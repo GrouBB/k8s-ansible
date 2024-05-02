@@ -1,0 +1,29 @@
+- name: Ping my hosts
+  ansible.builtin.ping:
+
+- name: Install packages
+  ansible.builtin.apt:
+    name:
+      - vim
+      - git
+      - htop
+      - bat
+      - exa
+      - tmux
+      - traceroute
+      - net-tools
+      - python3-pip
+    update_cache: true
+    autoclean: true
+  register: apt_package_install
+  when:
+    - ansible_os_family in ['Ubuntu', 'Debian']
+
+- name: Output apt pacakge install result
+  ansible.builtin.debug:
+    var: apt_package_install
+
+- name: Verify if proxmoxer pip module is installed
+  ansible.builtin.pip:
+    name: proxmoxer
+    state: present

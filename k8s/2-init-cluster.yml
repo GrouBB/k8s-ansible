@@ -1,0 +1,189 @@
+---
+- name: Setup a 8ks vm cluster
+  hosts: k8s
+  become: true
+  gather_facts: false
+  vars:
+    - os_version: xUbuntu_22.04
+    - cri_o_version: 1.24
+    - cri_o_version_full: 1.24.4
+  tasks:
+
+    - name: Install packages
+      ansible.builtin.apt:
+        pkg:
+          # Required
+          - software-properties-common
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg2
+          # Extra
+          - bash-completion
+          - vim
+          # - git
+          # - tmux
+          # - traceroute
+          # - net-tools
+      register: apt_package_install
+      notify: Apt_package_install_change
+
+    # Info: https://kubernetes.io/docs/setup/production-environment/container-runtimes/#forwarding-ipv4-and-letting-iptables-see-bridged-traffic
+    - name: Create conf file for Kubernetes modprobe
+      ansible.builtin.file:
+        path: /etc/modules-load.d/k8s.conf
+        mode: 0644
+        state: touch
+
+    - name: Add conf for Kubernetes modprobe
+      ansible.builtin.blockinfile:
+        path: /etc/modules-load.d/k8s.conf
+        block: |
+          overlay
+          br_netfilter
+
+    - name: Apply modprobe params without reboot
+      register: cmd_output
+      failed_when: cmd_output.rc != 0
+      changed_when: cmd_output.stdout == ''
+      ansible.builtin.shell: |
+        modprobe overlay -v
+        modprobe br_netfilter -v
+
+    - name: Create conf file for Kubernetes networking
+      ansible.builtin.file:
+        path: /etc/sysctl.d/99-kubernetes-cri.conf
+        mode: 0644
+        state: touch
+
+    - name: Add conf for Kubernetes networking
+      ansible.builtin.blockinfile:
+        path: /etc/sysctl.d/99-kubernetes-cri.conf
+        block: |
+          net.bridge.bridge-nf-call-iptables = 1
+          net.ipv4.ip_forward = 1
+          net.bridge.bridge-nf-call-ip6tables = 1
+
+    - name: Apply sysctl params without reboot
+      register: cmd_output
+      failed_when: cmd_output.rc != 0
+      changed_when: "'Applying' in cmd_output.stdout"
+      ansible.builtin.shell: |
+        sysctl --system
+
+    #   # Info: https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/#installing-kubeadm-kubelet-and-kubectl
+    - name: Install K8S (1/4)
+      ansible.builtin.apt_key:
+        url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+        keyring: /etc/apt/keyrings/kubernetes-archive-keyring.gpg
+        state: present
+
+    - name: Install K8S (2/4)
+      ansible.builtin.apt_repository:
+        repo: "deb [signed-by=/etc/apt/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main"
+        state: present
+
+    - name: Install K8S (3/4)
+      ansible.builtin.apt:
+        update_cache: true
+        pkg:
+          - kubelet
+          - kubeadm
+          - kubectl
+      register: k8s_package_install
+      notify: K8s_package_install_change
+
+    - name: Install K8S (4/4)
+      ansible.builtin.dpkg_selections:
+        name: "{{ item }}"
+        selection: hold
+      loop:
+        - kubelet
+        - kubeadm
+        - kubectl
+
+    - name: Install CRI-O container runtime (1/6)
+      ansible.builtin.apt_key:
+        url: "https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/{{ os_version }}/Release.key"
+        state: present
+
+    - name: Install CRI-O container runtime (2/6)
+      vars:
+        - cri_o_url: "{{ cri_o_version }}:/{{ cri_o_version_full }}/{{ os_version }}"
+      ansible.builtin.apt_key:
+        url: "https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/{{ cri_o_url }}/Release.key"
+        state: present
+
+    - name: Install CRI-O container runtime (3/6)
+      ansible.builtin.apt_repository:
+        repo: "deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/{{ os_version }}/ /"
+        filename: "/etc/apt/sources.list.d/devel-kubic-libcontainers-stable"
+        state: present
+
+    - name: Install CRI-O container runtime (4/6)
+      vars:
+        - cri_o_url: "{{ cri_o_version }}:/{{ cri_o_version_full }}/{{ os_version }}"
+      ansible.builtin.apt_repository:
+        repo: "deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/{{ cri_o_url }}/ /"
+        filename: "/etc/apt/sources.list.d/devel-kubic-libcontainers-stable-cri-o-{{ cri_o_version_full }}"
+        state: present
+
+    - name: Install CRI-O container runtime (5/6)
+      become: true
+      ansible.builtin.apt:
+        update_cache: true
+        pkg:
+          - cri-o
+          - cri-o-runc
+
+    - name: Install CRI-O container runtime (6/6)
+      ansible.builtin.systemd:
+        daemon_reload: true
+        enabled: true
+        state: started
+        name: crio
+
+    # Info: https://kubernetes.io/docs/setup/production-environment/container-runtimes/#cri-o
+    - name: Set cgroup driver (1/2)
+      ansible.builtin.file:
+        path: /etc/crio/crio.conf.d/02-cgroup-manager.conf
+        mode: 0644
+        state: touch
+
+    - name: Set cgroup driver (2/2)
+      ansible.builtin.blockinfile:
+        path: /etc/crio/crio.conf.d/02-cgroup-manager.conf
+        block: |
+          [crio.runtime]
+          conmon_cgroup = "pod"
+          cgroup_manager = "cgroupfs"
+
+    - name: Disable SWAP (1/2)
+      ansible.builtin.shell: |
+        swapoff -a
+
+    - name: Disable SWAP (2/2)
+      ansible.builtin.replace:
+        path: /etc/fstab
+        regexp: '^([^#].*?\sswap\s+sw\s+.*)$'
+        replace: '# \1'
+
+    - name: Check if changes require reboot
+      ansible.builtin.stat:
+        path: /var/run/reboot-required
+      register: reboot_required
+
+    - name: Reboot
+      ansible.builtin.reboot:
+        reboot_timeout: 3600
+      when: reboot_required.stat.exists
+
+  handlers:
+
+    - name: Apt_package_install_change
+      ansible.builtin.debug:
+        var: apt_package_install
+
+    - name: K8s_package_install_change
+      ansible.builtin.debug:
+        var: k8s_package_install

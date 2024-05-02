@@ -1,0 +1,22 @@
+plugin: community.vmware.vmware_vm_inventory
+strict: False
+hostname: 10.10.4.171
+username: "root"
+password: "Qwerty1234%"
+validate_certs: False
+with_tags: False
+hostnames:
+  - config.name
+properties:
+  - config.name
+  - guest.ipAddress
+  - guest.toolsRunningStatus
+  - guest.toolsStatus
+filters:
+  - config.name is match("iac")
+  - summary.runtime.powerState == "poweredOn"
+# keyed_groups:
+#   - key: guest.toolsStatus
+#     separator: ""
+#   - key: guest.toolsRunningStatus
+#     separator: ""

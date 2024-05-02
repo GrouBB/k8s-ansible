@@ -1,0 +1,27 @@
+---
+- name: Create, Start and delete k8s LXC cluster
+  hosts: pve
+  become: false
+  gather_facts: false
+  vars:
+    pve_node: "{{ groups.pve_nodes[0] }}"
+    pve_user: "{{ hostvars[groups.pve_nodes[0]].pve_user }}"
+    pve_password: "{{ hostvars[groups.pve_nodes[0]].ansible_password }}"
+    pve_hostname: "{{ hostvars[groups.pve_nodes[0]].ansible_host }}"
+    pve_template_store: "{{ hostvars[groups.pve_nodes[0]].template_store }}"
+    pve_container_store: "{{ hostvars[groups.pve_nodes[0]].container_store }}"
+    lxc_template: "{{ hostvars[groups.k8s[0]].lxc_template }}"
+  roles:
+    - k8s
+
+- name: Setup a k8s LXC cluster
+  hosts: k8s
+  become: false
+  gather_facts: false
+  vars:
+    pve_node: "{{ groups.pve_nodes[0] }}"
+    pve_user: "{{ hostvars[groups.pve_nodes[0]].pve_user }}"
+    pve_password: "{{ hostvars[groups.pve_nodes[0]].ansible_password }}"
+    pve_hostname: "{{ hostvars[groups.pve_nodes[0]].ansible_host }}"
+  roles:
+    - k8s

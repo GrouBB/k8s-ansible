@@ -1,0 +1,84 @@
+---
+- name: Get VCenter info
+  hosts: vmware2
+  become: false
+  gather_facts: false
+  vars_files:
+    - vars/vc.yml
+  tasks:
+
+    - name: Provide information about vCenter
+      community.vmware.vmware_about_info:
+        hostname: "{{ vcenter_hostname }}"
+        username: "{{ vcenter_username }}"
+        password: "{{ vcenter_password }}"
+        validate_certs: "{{ vcenter_validate_certs }}"
+      delegate_to: localhost
+      register: vcenter_info
+
+    - name: Print VCenter Info
+      ansible.builtin.debug:
+        var: vcenter_info
+
+    - name: Gather info about IAC master with vSphere API output schema
+      community.vmware.vmware_guest_info:
+        hostname: "{{ vcenter_hostname }}"
+        username: "{{ vcenter_username }}"
+        password: "{{ vcenter_password }}"
+        datacenter: "{{ vcenter_datacenter }}"
+        validate_certs: "{{ vcenter_validate_certs }}"
+        name: "{{ iac_master_name }}"
+        schema: "vsphere"
+        properties: ["guest.ipAddress", "overallStatus"]
+      delegate_to: localhost
+      register: vcenter_vm_info
+
+    - name: Print VM Info
+      ansible.builtin.debug:
+        var: vcenter_vm_info
+
+    - name: Gather information about all datacenters
+      community.vmware.vmware_datacenter_info:
+        hostname: "{{ vcenter_hostname }}"
+        username: "{{ vcenter_username }}"
+        password: "{{ vcenter_password }}"
+        validate_certs: "{{ vcenter_validate_certs }}"
+        schema: vsphere
+        properties:
+          - configStatus
+          - overallStatus
+      delegate_to: localhost
+      register: datacenter_facts
+
+    - name: Print Datacenter facts
+      ansible.builtin.debug:
+        var: datacenter_facts
+
+    - name: Gather info from datacenter datastore volumes
+      community.vmware.vmware_datastore_info:
+        hostname: "{{ vcenter_hostname }}"
+        username: "{{ vcenter_username }}"
+        password: "{{ vcenter_password }}"
+        validate_certs: "{{ vcenter_validate_certs }}"
+        datacenter_name: "{{ vcenter_datacenter }}"
+        schema: vsphere
+      delegate_to: localhost
+      register: datacenter_datastores_info
+
+    - name: Print datacenter datastore volumes
+      ansible.builtin.debug:
+        var: datacenter_datastores_info
+
+    - name: Provide information about vCenter folders
+      community.vmware.vmware_folder_info:
+        hostname: "{{ vcenter_hostname }}"
+        username: "{{ vcenter_username }}"
+        password: "{{ vcenter_password }}"
+        validate_certs: "{{ vcenter_validate_certs }}"
+        datacenter: "{{ vcenter_datacenter }}"
+      delegate_to: localhost
+      register: vcenter_folder_info
+
+    - name: Print folder info
+      ansible.builtin.debug:
+        var: vcenter_folder_info

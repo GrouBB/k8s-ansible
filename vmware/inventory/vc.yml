@@ -1,0 +1,9 @@
+all:
+  children:
+    vmware:
+      hosts: vmware2
+      vars:
+        ansible_host: 10.10.4.171
+        ansible_user: root
+        ansible_password: "Qwerty1234%"
+        ansible_python_interpreter: /bin/python

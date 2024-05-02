@@ -1,0 +1,50 @@
+---
+- name: Get VCenter info
+  hosts: vmware2
+  become: false
+  gather_facts: false
+  vars_files:
+    - vars/vc.yml
+  tasks:
+    - name: Gather snapshot information about the virtual machine in the given vCenter
+      community.vmware.vmware_guest_snapshot_info:
+        hostname: "{{ vcenter_hostname }}"
+        username: "{{ vcenter_username }}"
+        password: "{{ vcenter_password }}"
+        validate_certs: "{{ vcenter_validate_certs }}"
+        datacenter: "{{ vcenter_datacenter }}"
+        folder: "/{{ vcenter_datacenter }}/vm"
+        name: "{{ item }}"
+      loop:
+        - iac-k8s-m1
+        - iac-k8s-m2
+        - iac-k8s-w1
+        - iac-k8s-w2
+        - iac-k8s-w3
+        - iac-k8s-w4
+      delegate_to: localhost
+      register: snapshot_info
+
+    - name: Print Snaphshot info
+      ansible.builtin.debug:
+        var: snapshot_info
+
+    - name: Revert to a snapshot
+      community.vmware.vmware_guest_snapshot:
+        hostname: "{{ vcenter_hostname }}"
+        username: "{{ vcenter_username }}"
+        password: "{{ vcenter_password }}"
+        validate_certs: "{{ vcenter_validate_certs }}"
+        datacenter: "{{ vcenter_datacenter }}"
+        folder: "/{{ vcenter_datacenter }}/vm/"
+        name: "{{ item }}"
+        state: revert
+        snapshot_name: install
+      loop:
+        - iac-k8s-m1
+        - iac-k8s-m2
+        - iac-k8s-w1
+        - iac-k8s-w2
+        - iac-k8s-w3
+        - iac-k8s-w4
+      delegate_to: localhost

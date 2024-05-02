@@ -1,0 +1,25 @@
+---
+# Vcenter vars
+vcenter_hostname: "10.10.4.171"
+vcenter_username: "root"
+vcenter_password: "Qwerty1234%"
+vcenter_datacenter: "ha-datacenter"
+vcenter_validate_certs: false
+vcenter_destination_folder: "iac"
+
+# IAC master VM info
+iac_master_name: "iac-master"
+iac_master_username: "iac"
+iac_master_password: "iac"
+
+# VM vars
+vm_name: "iac-test"
+vm_guestid: "ubuntu64Guest"
+vm_disk_gb: 10
+vm_disk_type: "thin"
+vm_disk_datastore: "3par-8k1-NL-r6_vm-data"
+vm_hw_ram_mb: 1024
+vm_hw_cpu_n: 1
+vm_hw_scsi: "paravirtual"
+vm_net_name: "Internal-port-group"
+vm_net_device: "vmxnet3"

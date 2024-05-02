@@ -1,0 +1,8 @@
+---
+# IAC master VM info
+lxc_name: iac-master
+lxc_password: "master"
+lxc_id: 200
+lxc_ip: 10.10.10.10
+lxc_template: ubuntu-22.04-standard_22.04-1_amd64.tar.zst
+lxc_unprivelaged: true
